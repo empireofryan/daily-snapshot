@@ -15,6 +15,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "22", cache: npm }
       - run: npm ci --no-audit --no-fund
+      - name: Install Turso CLI (for the DB usage line)
+        run: curl -sSfL https://get.tur.so/install.sh | bash > /dev/null 2>&1 || echo "turso CLI install failed, usage line will be n/a"
       - name: Restore previous day's numbers (for % change)
         uses: actions/cache/restore@v4
         with:
@@ -24,6 +26,7 @@ jobs:
       - name: Run snapshot (output kept out of the public log)
         env:
           SNAPSHOT_STATE_FILE: .snapshot-state/state.json
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           VIBEFIND_TURSO_AUTH_TOKEN: ${{ secrets.VIBEFIND_TURSO_AUTH_TOKEN }}
