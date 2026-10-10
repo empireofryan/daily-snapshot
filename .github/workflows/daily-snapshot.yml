@@ -1,0 +1,54 @@
+name: Daily Snapshot
+# Daily traffic + signups digest for all sites, emailed via Resend.
+# Public repo = free Actions minutes. Secrets live in repo secrets; script output is
+# written to a file (not the public log) so traffic numbers never appear in run logs.
+on:
+  schedule:
+    - cron: "0 20 * * *"   # 20:00 UTC = 2pm Denver (MDT)
+  workflow_dispatch:
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - name: Restore previous day's numbers (for % change)
+        uses: actions/cache/restore@v4
+        with:
+          path: .snapshot-state
+          key: snapshot-state-${{ github.run_id }}
+          restore-keys: snapshot-state-
+      - name: Run snapshot (output kept out of the public log)
+        env:
+          SNAPSHOT_STATE_FILE: .snapshot-state/state.json
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          VIBEFIND_TURSO_AUTH_TOKEN: ${{ secrets.VIBEFIND_TURSO_AUTH_TOKEN }}
+          RANKLOFT_TURSO_AUTH_TOKEN: ${{ secrets.RANKLOFT_TURSO_AUTH_TOKEN }}
+          NOOZDAY_TURSO_AUTH_TOKEN: ${{ secrets.NOOZDAY_TURSO_AUTH_TOKEN }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_REELS_BUCKET: ${{ secrets.R2_REELS_BUCKET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          SNAPSHOT_TO: ${{ secrets.SNAPSHOT_TO }}
+        run: |
+          mkdir -p .snapshot-state
+          if npx tsx scripts/daily-snapshot.ts > run.log 2>&1; then
+            grep -q "\[email\] sent" run.log && echo "Email sent." || { echo "Finished but no email line found."; exit 1; }
+          else
+            echo "Snapshot failed. Last error line:"; grep -iE "error|cannot|denied|401|403" run.log | tail -1 | cut -c1-200; exit 1
+          fi
+      - name: Save numbers for tomorrow
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: .snapshot-state
+          key: snapshot-state-${{ github.run_id }}
