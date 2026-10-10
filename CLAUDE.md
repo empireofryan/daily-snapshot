@@ -13,6 +13,6 @@ Daily traffic + signups email digest for Ryan's sites (EscapeFromUSA, CityPopn, 
 - Update a secret: `gh secret set NAME -R empireofryan/daily-snapshot`
 
 ## Status (2026-10-10)
-- Live; test run sent email OK. Turso storage/read line is n/a in CI (needs turso CLI), expected.
+- Live; verified 2026-10-10 (email sent, % change via cache works, Turso line works via CLI + TURSO_API_TOKEN secret, token "daily-snapshot-ci").
 - Old laptop launchd jobs moved to ~/Library/LaunchAgents/disabled/ (efusa-daily-snapshot + watchdog). EscapeFromUSA's own workflow is manual-only.
 - Why moved: laptop job died Oct 3 when EscapeFromUSA/web/node_modules got wiped; private-repo GHA minutes are exhausted.
