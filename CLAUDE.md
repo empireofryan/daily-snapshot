@@ -16,3 +16,6 @@ Daily traffic + signups email digest for Ryan's sites (EscapeFromUSA, CityPopn, 
 - Live; verified 2026-10-10 (email sent, % change via cache works, Turso line works via CLI + TURSO_API_TOKEN secret, token "daily-snapshot-ci").
 - Old laptop launchd jobs moved to ~/Library/LaunchAgents/disabled/ (efusa-daily-snapshot + watchdog). EscapeFromUSA's own workflow is manual-only.
 - Why moved: laptop job died Oct 3 when EscapeFromUSA/web/node_modules got wiped; private-repo GHA minutes are exhausted.
+
+## 2026-10-20
+- Fixed EFUSA sign-ups always showing 0: this copy predated EFUSA commit 146bea0 (users.created_at is unix epoch). Ported `signupDateEpoch`. Fixes to EscapeFromUSA/web/scripts/daily-snapshot.ts do NOT reach this repo; port them by hand.
