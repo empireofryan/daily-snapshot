@@ -54,6 +54,7 @@ interface ProjectConfig {
   urlColumn?: string     // analytics_pageviews path/url column name (default 'url'; noozday uses 'path')
   signupTable?: string   // table of registered users/signups; omit to skip the signup metric
   signupDateCol?: string // created-at column on signupTable (default 'created_at'; CityPopn uses 'createdAt')
+  signupDateEpoch?: boolean // date column is unix seconds (INTEGER); SQLite sorts INTEGER below TEXT, so comparing it to datetime() text always counts 0
 }
 
 const PROJECTS: ProjectConfig[] = [
@@ -61,6 +62,7 @@ const PROJECTS: ProjectConfig[] = [
     name: 'EscapeFromUSA',
     domain: 'escapefromusa.com',
     signupTable: 'users',
+    signupDateEpoch: true,  // users.created_at DEFAULT unixepoch()
     // uses TURSO_DATABASE_URL / TURSO_AUTH_TOKEN from process.env
   },
   {
@@ -167,7 +169,7 @@ async function queryTursoTraffic(proj: ProjectConfig, daysAgo: number): Promise<
     db.execute(`SELECT AVG(dur) as avg_dur FROM (SELECT session_id, SUM(MIN(time_on_page, 600)) as dur FROM analytics_pageviews WHERE created_at >= ${since} AND time_on_page IS NOT NULL AND time_on_page > 0 GROUP BY session_id)`).catch(() => empty([{ avg_dur: 0 }])),
     // Signups (new registered users) since window — only when the project has a table.
     proj.signupTable
-      ? db.execute(`SELECT COUNT(*) as c FROM ${proj.signupTable} WHERE ${proj.signupDateCol || 'created_at'} >= ${since}`).catch(() => empty([{ c: null }]))
+      ? db.execute(`SELECT COUNT(*) as c FROM ${proj.signupTable} WHERE ${proj.signupDateEpoch ? `datetime(${proj.signupDateCol || 'created_at'}, 'unixepoch')` : proj.signupDateCol || 'created_at'} >= ${since}`).catch(() => empty([{ c: null }]))
       : empty([{ c: null }]),
   ])
 
